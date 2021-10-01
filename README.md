@@ -1,5 +1,7 @@
 # renv_to_docker
 
+![renv_to_docker](https://user-images.githubusercontent.com/35414366/135584120-2be79766-a8dc-46ba-86df-8897c19cce4e.png)
+
 This is a use case of using docker with renv.
 
 **renv** is a package developed by [Kevin Ushey](https://github.com/kevinushey) at Rstudio which for all intents and purposes, is meant to replace Packrat.
