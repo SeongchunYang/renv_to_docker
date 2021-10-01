@@ -4,13 +4,13 @@
 
 This is a use case of using docker with renv.
 
-**renv** is a package developed by [Kevin Ushey](https://github.com/kevinushey) at Rstudio which for all intents and purposes, is meant to replace Packrat.
+**renv** is a package developed by [Kevin Ushey](https://github.com/kevinushey) at Rstudio which for all intents and purposes, is meant to be the replacement to Packrat.
 
-renv is meant to increase reproducibility on R projects, while making the process of setup less strenuous on your computer and sanity. It does this by recording the R version and the package versions, just like other environment managers like conda.
+renv is designed to increase reproducibility on R projects, while making the process of setup less strenuous on your computer and sanity. It does this by recording the R version and the package versions, just like other environment managers like Conda.
 
-**Docker** is a well-known tool in containerizing tools and apps. Rather than using a full-fledged VM which take time to set up, docker aims to reduce both the time in building it and the computational cost to your machine by utilizing the OS of your computer to do the work rather than having a fully operational OS built in.
+**Docker** is a well-known tool in containerizing tools and apps. Rather than using a full-fledged VM which takes time to set up, docker aims to reduce both the time in building it and the computational cost to your machine in running it by utilizing the OS of your computer to do the work rather than having a fully operational OS built in.
 
-Now, the question is, how do we combine them both?
+Now, the question is, how do we combine both?
 
 ## Motivation
 
@@ -26,7 +26,7 @@ If you switch out renv with any of the two (Packrat, Conda), you can still say t
 
 ### Packrat
 
-Packrat had a fatal flaw in everyday use; initialization took way too long. This is also mentioned in the comparison notes seen [here](https://rstudio.github.io/renv/articles/renv.html#comparison-with-packrat-1);
+Packrat had a fatal flaw in everyday use; initialization takes way too long. This is also mentioned in the comparison notes seen [here](https://rstudio.github.io/renv/articles/renv.html#comparison-with-packrat-1);
 
 > renv no longer attempts to explicitly download and track R package source tarballs within your project. This was a frustrating default that operated under the assumption that you might later want to be able to restore a project’s private library without access to a CRAN repository. In practice, this is almost never the case, and the time spent downloading + storing the package sources seemed to outweigh the potential reproducibility benefits.
 
@@ -38,7 +38,7 @@ This is more anecdotal. I personally never had much success in using R with Cond
 
 ## Other renv + docker implemenetations
 
-There a few tips out there regarding the simultaneous use of both.
+There are a few tips out there regarding the simultaneous use of both.
 
 renv itself has a [recommendation](https://rstudio.github.io/renv/articles/docker.html) laid out on their github page. This particular recommendation puts forward a way to use the system cache of renv to build the docker image in such a way that the docker will use the pre-installed packages on your host instead of downloading them from scratch.
 
@@ -53,34 +53,33 @@ This is great. I just happen to prefer not depending on my host for storage, and
 
 ## renv_to_docker
 
-My solution is similar to Robert, but my first *base* image will be just that; a base.
+My solution is similar to that from Robert, but my first *base* image will be just that; a base.
 
-This base image will contain all the base packages required for a particular project. Base image is then meant to be used as a starting point for all following iterations of the project, with additions to packages if required.
+This base image will contain all the important packages required for a particular project. Base image is then meant to be used as a starting point for all following iterations of the project, with additions to packages if required.
 
 We are working with the file tree as follows. See the upcoming dockerfiles and commands for further info.
 
 ```bash
 .
+├── README.md
+├── base
+│   ├── 1st_build.sh
+│   ├── Dockerfile_install
+│   └── renv.lock
 ├── 1st
 │   ├── 2nd_build.sh
 │   ├── Dockerfile_build
 │   ├── entry.R
 │   ├── peco_demo.Rmd
 │   └── run.sh
-├── 2nd
-│   ├── 2nd_build.sh
-│   ├── Dockerfile_build
-│   ├── entry.R
-│   ├── peco_demo_plot.Rmd
-│   ├── run.sh
-│   └── sce-final.rds
-├── README.md
-└── base
-    ├── 1st_build.sh
-    ├── Dockerfile_install
-    └── renv.lock
+└── 2nd
+    ├── 2nd_build.sh
+    ├── Dockerfile_build
+    ├── entry.R
+    ├── peco_demo_plot.Rmd
+    ├── run.sh
+    └── sce-final.rds
 ```
-
 
 ### Base image dockerfile (folder:<code>/base</code>)
 
@@ -109,7 +108,7 @@ RUN R -e "renv::consent(provided = TRUE)"
 RUN R -e "renv::restore(lockfile = './renv/renv.lock')" 
 ```
 
-As you can see, the base is an image built on top of rocker/verse (you can edit which version of R to use). Then the dockerfile instructs the build to copy the host <code>renv.lock</code> file and use this to directly install packages in this image.
+As you can see, the base is an image built on top of rocker/verse:{R-version}. Then the dockerfile instructs the build to copy the host <code>renv.lock</code> file and use this to directly install packages in this image.
 
 ```bash
 docker build \
@@ -117,7 +116,7 @@ docker build \
 -f Dockerfile_install .
 ```
 
-The above shell script will then build this image following the specifications of the dockerfile <code>Dockerfile_install</code>. As you can see, I have named this base image <code>base:demo</code>.
+The above shell script will then build this image following the specifications of the dockerfile <code>Dockerfile_install</code>. I have named this base image <code>base:demo</code>, but you can change this to any name you'd like, given that you change the name used in the following scripts to that of the new base image name.
 
 ### A use-case for base (folder:<code>/1st</code>)
 
@@ -188,12 +187,12 @@ While the newly added packages can be saved to the image <code>renv.lock</code>,
 
 Also, if you were to decide to add a significant package that will be used throughout the project, you may need to revamp the base image.
 
-Regardless, the chain lives on as the created docker image down the chain will no longer require the base to propagate. But this does make maintaining them a hassle.
+Regardless, the chain lives on as the created docker image down the chain will no longer require the base to propagate. But this does make tracing ancestry a hassle.
 
-Conclusion is that this is my particular use case where I do not have a lot of loose ends from a project. But if you happen to have a fairly large one where there are many versions, the approach by Robert may very well be preferable due to having a central repository of your renv cache.
+## Closing remarks
+
+Conclusion is that this is my particular use-case. If you happen to have a fairly extensive project where there are many versions stretching across many mutually exclusive packages, the approach by Robert may very well be preferable due to having a central repository of your renv cache. On the other hand, if you like the idea of having a base image that will be the foundation to a particular project you are running, this is a good option to not have the renv cache on your machine.
 
 ## Reference
-
-Source of some code snippets are mentioned in the dockerfile.
 
 The code from [peco](https://github.com/jhsiao999/peco) was used for the example rmarkdown. As this was downloaded not from CRAN but from devtools, it showcases renv handling such jobs as well as the typical packages found in CRAN.
