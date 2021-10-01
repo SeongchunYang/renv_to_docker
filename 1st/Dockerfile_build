@@ -1,0 +1,15 @@
+FROM sc/base:demo
+
+# Set global variables
+ENV rmd peco_demo
+ENV output peco_demo
+
+# Create results directory
+RUN mkdir -p /project/results
+
+# Copy files from the host
+COPY ./entry.R .
+COPY "./${rmd}.Rmd" .
+
+# Run command (run R)
+CMD /usr/local/bin/Rscript --vanilla entry.R $rmd $output

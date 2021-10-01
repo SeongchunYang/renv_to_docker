@@ -1,0 +1,22 @@
+FROM rocker/verse:4.1.1
+
+# General taking care of user checkpoints
+RUN mkdir /project
+RUN chown root:root /project
+USER root
+
+# Set working directory
+WORKDIR /project
+# Set a global variable
+ENV RENV_VERSION=0.11.0
+# Copy renv.lock file
+COPY ./renv.lock /project/renv/
+
+# Install remotes package from CRAN
+RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))"
+# Install renv (version specified previously) through remotes
+RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
+
+# Source: joelnitta, https://github.com/joelnitta/docker-packrat-example/blob/master/Dockerfile
+RUN R -e "renv::consent(provided = TRUE)"
+RUN R -e "renv::restore(lockfile = './renv/renv.lock')"

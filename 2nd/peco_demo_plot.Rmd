@@ -1,0 +1,102 @@
+---
+title: "Peco demo"
+author: "Seongchun Yang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+This script is meant to test **peco**, a supervised approach for predicting continuous cell cycle phase in scRNAseq data analysis.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(root.dir = '/project/', echo = F, warning = F, message = F)
+```
+
+# Preliminary look
+
+```{r data}
+data('training_human')
+data('sce_top101genes')
+sce_top101genes <- data_transform_quantile(sce_top101genes,ncores=6)
+```
+
+```{r pred}
+pred_top101genes <- cycle_npreg_outsample(
+    Y_test=sce_top101genes,
+    sigma_est=training_human$sigma[rownames(sce_top101genes),],
+    funs_est=training_human$cellcycle_function[rownames(sce_top101genes)],
+    method.trend="trendfilter",
+    ncores=6,
+    get_trend_estimates=FALSE)
+```
+
+```{r plot_per_gene}
+plot(y=assay(pred_top101genes$Y,"cpm_quantNormed")["ENSG00000170312",],
+     x=colData(pred_top101genes$Y)$theta_shifted, main = "CDK1",
+     xlab = "FUCCI phase",
+     ylab = "quantile normalized expression",
+     axes = F)
+axis(2); axis(1,at=c(0,pi/2, pi, 3*pi/2, 2*pi),
+              labels=c(0,expression(pi/2), expression(pi), expression(3*pi/2),
+                       expression(2*pi)))
+points(y=training_human$cellcycle_function[["ENSG00000170312"]](seq(0,2*pi, length.out=100)),
+       x=seq(0,2*pi, length.out=100), col = "blue", pch =16)
+```
+
+```{r data_per_fucci_scoreA}
+sce = readRDS(paste(getwd(),'sce-final.rds', sep='/'))
+sce = sce[grep('ENSG',rownames(sce)),]
+names(assays(sce)) = 'counts' # rename assay slot
+sce = data_transform_quantile(sce, ncores=6) # log2cpm
+ints = data.frame(rfp=colData(sce)$rfp.median.log10sum.adjust,
+                  gfp=colData(sce)$gfp.median.log10sum.adjust)
+```
+
+```{r plot_per_fucci_scoreA, fig.height=3.5, fig.width=3.5}
+plot(x=ints$rfp, y=ints$gfp, pch=16, cex=.5, xlim=c(-1.5,1.5), ylim = c(-1.5,1.5),
+     xlab='mCherry score', ylab='EGFP score', main='FUCCI scores', col='gray50', axes=F)
+axis(1);axis(2)
+abline(h=0,v=0,col='gray50',lty=2); par(new=T)
+theta = coord2rad(scale(ints))
+plot(circular(theta), stack=T, shrink=1.3, cex=.5, bins=200)
+```
+
+```{r data_per_fucci_scoreB}
+pca = prcomp(ints)
+theta = coord2rad(pca$x)
+theta_final = shift_origin(as.numeric(theta), origin=3*pi/4)
+pam_res = pam(ints,k=3)
+clust = data.frame(clust=pam_res$clustering,sample_id=rownames(colData(sce)))
+
+# divide from S (clust2) and G2/M (clust3)
+b1 <- mean(max(range(theta_final[clust$clust==2])), min(range(theta_final[clust$clust==3])))
+# divide from G2/M from G1 (clust1)
+b2 <- mean(max(range(theta_final[clust$clust==3])), max(range(theta_final[clust$clust==1])))
+# divide from G1 from S
+b3 <- mean(min(range(theta_final[clust$clust==2])), min(range(theta_final[clust$clust==1])))
+```
+
+```{r plot_per_fucci_scoreB}
+par(mfrow=c(1,1))
+plot(x=theta_final,
+     y=ints$gfp, col="forestgreen",
+     pch=c(16,1,4)[clust$clust],
+     ylim=c(-1.5, 1.5), cex=.5,
+     xlab="FUCCI phase", ylab="FUCCI scores",
+     main="FUCCI scores", axes=F)
+axis(2); axis(1,at=c(0,pi/2, pi, 3*pi/2, 2*pi),
+              labels=c(0,expression(pi/2), expression(pi), expression(3*pi/2),
+                       expression(2*pi)))
+abline(h=0, lty=1, col="black", lwd=.7)
+points(x=theta_final,
+       y=ints$rfp, col="firebrick",
+       ylim=c(-1.5, 1.5),
+       pch=c(16,1,4)[clust$clust],
+       cex=.5)
+abline(v=c(b1,b2,b3), lty=2)
+```
+
+# SessionInfo
+
+```{r sessioninfo}
+sessionInfo()
+```

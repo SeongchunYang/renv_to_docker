@@ -1,0 +1,18 @@
+FROM sc/peco_demo
+
+# Set global variables
+ENV rmd peco_demo_plot
+ENV output peco_demo_plot
+
+# Create results directory
+RUN mkdir -p /project/results
+
+# Copy files from the host
+COPY ./entry.R .
+COPY "./${rmd}.Rmd" .
+COPY ./sce-final.rds .
+
+# Run command (run R)
+RUN R -e "install.packages('circular')"
+RUN R -e "renv::snapshot()"
+CMD /usr/local/bin/Rscript --vanilla entry.R $rmd $output
