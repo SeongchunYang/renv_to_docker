@@ -185,9 +185,7 @@ docker build \
 
 While the newly added packages can be saved to the image <code>renv.lock</code>, this means that you would need to keep this image around if you plan on expanding further on this particular package addition.
 
-Also, if you were to decide to add a significant package that will be used throughout the project, you may need to revamp the base image.
-
-Regardless, the chain lives on as the created docker image down the chain will no longer require the base to propagate. But this does make tracing ancestry a hassle.
+Also, if you were to decide to add a significant package that will be used throughout the project, you may need to revamp the base image. This does make tracing ancestry of an image a hassle.
 
 ## Closing remarks
 
