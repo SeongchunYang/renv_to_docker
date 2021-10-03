@@ -1,6 +1,6 @@
 # renv_to_docker
 
-![renv_to_docker](https://user-images.githubusercontent.com/35414366/135584120-2be79766-a8dc-46ba-86df-8897c19cce4e.png)
+![renv_to_docker](https://user-images.githubusercontent.com/35414366/135749905-9281ac60-99e2-444d-923b-33777e9658d5.png)
 
 This is a use case of using docker with renv.
 
